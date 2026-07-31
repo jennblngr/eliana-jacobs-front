@@ -1,3 +1,122 @@
+
+<script setup lang="ts">
+import { computed, onMounted } from "vue";
+import { marked } from "marked";
+
+import { useMainStore } from "@/store";
+import { useRoute, useRouter } from "vue-router";
+
+import emailIcon from "@/assets/icons/email.svg";
+import linkIcon from "@/assets/icons/link.svg";
+import localisationIcon from "@/assets/icons/localisation.svg";
+import scheduleIcon from "@/assets/icons/schedule.svg";
+import shapeBottom from "@/assets/images/shapes/article-01.png";
+
+import ArrowBackComponent from "@/components/shared-components/arrow-back-component.vue";
+import ButtonCustomComponent from "@/components/shared-components/button-custom-component.vue";
+import MediaComponent from "@/components/shared-components/media-component.vue";
+
+import { formatDate } from "@/utils/formatDate";
+import { formatHour } from "@/utils/formatHour";
+
+import type { Article } from "@/common/types";
+
+// #region Dependencies
+const mainStore = useMainStore();
+const route = useRoute();
+const router = useRouter();
+// #endregion
+
+// #region Constants
+const GOOGLE_MAPS_LINK: Readonly<string> = "https://maps.google.com/?q=";
+// #endregion
+
+// #region Computed
+const articleSlug = computed<string | undefined>(() => {
+	const articleSlug = route.params.article;
+
+	if (typeof articleSlug === "string") {
+		return articleSlug;
+	}
+
+	return articleSlug.length > 0 ? articleSlug[0] : undefined;
+})
+
+const article = computed<Article | null>(() => {
+	if (!mainStore.collectionTypes.news || !articleSlug.value) {
+		return null;
+	}
+	
+	mainStore.setArticle(articleSlug.value);
+	
+	// Get targeted article content with the slug.
+	return mainStore.collectionTypes.news[articleSlug.value];
+});
+
+const publishedAt = computed<string>(() => {
+	if (!article.value) {
+		return "";
+	}
+
+	return `Posted ${formatDate(article.value.attributes.publishedAt)}`;
+});
+
+const eventDate = computed<string>(() => {
+	if (!article.value) {
+		return "";
+	}
+
+	let date = `${formatDate(article.value.attributes.date.date)}, ${formatHour(article.value.attributes.date.start)} `;
+
+	if (article.value.attributes.date.end) {
+		date += `to ${formatHour(article.value.attributes.date.end)}`;
+	}
+
+	return date;
+});
+
+const eventLocation = computed<string | null>(() => {
+	if (!article.value || !article.value.attributes.address) {
+		return null;
+	}
+
+	const addressName = article.value.attributes.address.name ? article.value.attributes.address.name + ", " : "";
+	const streetName = article.value.attributes.address.street + ", ";
+	const cp = article.value.attributes.address.cp + ", ";
+
+	return `${addressName} ${streetName} ${cp} ${article.value.attributes.address.city}`;
+});
+
+const eventLocationLink = computed<string>(() => {
+	
+
+	return GOOGLE_MAPS_LINK + eventLocation.value;
+});
+
+const parsedText = computed<string>(() => {
+	if (!article.value) {
+		return "";
+	}
+
+	return marked(article.value.attributes.text);
+});
+// #endregion
+
+// #region Functions
+async function backToTheNewsPage(): Promise<void> {
+	await router.push("/news");
+}
+// #endregion
+
+// #region Lifecycles
+onMounted(async () => {
+	const articleSlug =  route.params.article;
+
+	mainStore.setArticle(typeof articleSlug === "string" ? articleSlug : articleSlug[0]);
+});
+// #endregion
+</script>
+
 <template>
 	<section class="article">
 		<div v-if="article">
@@ -13,7 +132,7 @@
 
 					<div class="article__header-text">
 						<h1 class="article__header-title">
-							{{ article.title }}
+							{{ article.attributes.title }}
 						</h1>
 
 						<div class="article__header-date">
@@ -61,7 +180,7 @@
 							</div>
 
 							<div
-								v-if="article.email"
+								v-if="article.attributes.email"
 								class="article__sidebar-detail"
 							>
 								<img
@@ -69,23 +188,23 @@
 									:src="emailIcon"
 									alt="Envelop"
 								/>
-								<a :href="`mailto:${article.email}`">
+								<a :href="`mailto:${article.attributes.email}`">
 									<div class="article__sidebar-info">
-										{{ article.email }}
+										{{ article.attributes.email }}
 									</div>
 								</a>
 							</div>
 						</div>
 
 						<button-custom-component
-							v-if="article.register"
+							v-if="article.attributes.register"
 							text="Register by email"
-							:link="'mailto:' + article.register.email"
+							:link="'mailto:' + article.attributes.register.email"
 							:external="true"
 						/>
 
 						<div
-							v-if="article.website"
+							v-if="article.attributes.website"
 							class="article__sidebar-link"
 						>
 							<img
@@ -95,18 +214,17 @@
 							/>
 							<a
 								class="article__sidebar-info"
-								:href="article.website"
+								:href="article.attributes.website"
 								target="_blank"
 							>
-								{{ article.website }}
+								{{ article.attributes.website }}
 							</a>
 						</div>
 					</div>
 
 					<div class="article__image">
 						<media-component
-							:media="article.image"
-							:copyright="article.image.copyright"
+							:media="article.attributes.image"
 						/>
 					</div>
 				</div>
@@ -121,107 +239,6 @@
 		</div>
 	</section>
 </template>
-
-<script setup lang="ts">
-import { computed, onMounted } from "vue";
-import { marked } from "marked";
-
-import { useStore } from "vuex";
-import { useRoute, useRouter } from "vue-router";
-
-import emailIcon from "@/assets/icons/email.svg";
-import linkIcon from "@/assets/icons/link.svg";
-import localisationIcon from "@/assets/icons/localisation.svg";
-import scheduleIcon from "@/assets/icons/schedule.svg";
-import shapeBottom from "@/assets/images/shapes/article-01.png";
-import ArrowBackComponent from "@/components/shared-components/arrow-back-component.vue";
-import ButtonCustomComponent from "@/components/shared-components/button-custom-component.vue";
-import MediaComponent from "@/components/shared-components/media-component.vue";
-import { formatDate } from "@/utils/formatDate";
-import { formatHour } from "@/utils/formatHour";
-import type { Article } from "@/common/types";
-
-// #region Composables
-const store = useStore();
-const route = useRoute();
-const router = useRouter();
-// #endregion
-
-// #region Computed
-const news = computed(() => store.state.news);
-
-// Retrieve the content of the targeted article with the slug.
-const article = computed<Article | null>(() => {
-	if (!news.value) {
-		return null;
-	}
-
-	store.dispatch("setArticle", route.params.article);
-
-	return news.value[route.params.article as string];
-});
-
-const publishedAt = computed<string>(() => {
-	if (!article.value) {
-		return "";
-	}
-
-	return `Posted ${formatDate(article.value.publishedAt)}`;
-});
-
-const eventDate = computed<string>(() => {
-	if (!article.value) {
-		return "";
-	}
-
-	let date = `${formatDate(article.value.date.date)}, ${formatHour(article.value.date.start)} `;
-
-	if (article.value.date.end) {
-		date += `to ${formatHour(article.value.date.end)}`;
-	}
-
-	return date;
-});
-
-const eventLocation = computed<string | null>(() => {
-	if (!article.value || !article.value.address) {
-		return null;
-	}
-
-	const addressName = article.value.address.name ? article.value.address.name + ", " : "";
-	const streetName = article.value.address.street + ", ";
-	const cp = article.value.address.cp + ", ";
-
-	return `${addressName} ${streetName} ${cp} ${article.value.address.city}`;
-});
-
-const eventLocationLink = computed<string>(() => {
-	const GOOGLE_MAPS_LINK = "https://maps.google.com/?q=";
-
-	return GOOGLE_MAPS_LINK + eventLocation.value;
-});
-
-const parsedText = computed<string>(() => {
-	if (!article.value) {
-		return "";
-	}
-
-	return marked(article.value.text);
-});
-// #endregion
-
-// #region Functions
-async function backToTheNewsPage(): Promise<void> {
-	await router.push("/news");
-}
-// #endregion
-
-// #region Lifecycles
-onMounted(async () => {
-	await store.dispatch("setArticle", route.params.article);
-});
-// #endregion
-</script>
 
 <style scoped lang="scss">
 .article {

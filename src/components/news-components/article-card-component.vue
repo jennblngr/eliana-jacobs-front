@@ -1,27 +1,32 @@
 <script setup lang="ts">
-import { useStore } from "vuex";
+import { useMainStore } from "@/store";
+import { useRouter } from "vue-router";
 
-import router from "@/router";
 import { formatDate } from "@/utils/formatDate";
 import { slugifyString } from "@/utils/slugify";
+
 import { Size } from "@/common/enums";
 import type { Article } from "@/common/types";
 
+// #region Props
 interface Props {
 	article: Article;
 	size: Size;
 }
-defineProps<Props>();
+
+const props = defineProps<Props>();
+// #endregion
 
 // #region Composables
-const store = useStore();
+const mainStore = useMainStore();
+const router = useRouter();
 // #endregion
 
 // #region Functions
 function goToTheArticlePage(articleTitle: string): void {
 	const slugifiedTitle = slugifyString(articleTitle);
 
-	store.dispatch("setArticle", slugifiedTitle);
+	mainStore.setArticle(slugifiedTitle);
 
 	router.push(`/news/${slugifiedTitle}`);
 }
@@ -31,90 +36,90 @@ function goToTheArticlePage(articleTitle: string): void {
 <template>
 	<!-- Small size -->
 	<div
-		v-if="size === 'small'"
+		v-if="props.size === 'small'"
 		class="article-card--small"
 	>
 		<div
 			class="link--image"
-			@click="goToTheArticlePage(article.title)"
+			@click="goToTheArticlePage(props.article.attributes.title)"
 		>
 			<img
 				class="image"
-				:src="article.image.url"
+				:src="props.article.attributes.image.src.data.attributes.url"
 				alt=""
 			/>
 		</div>
 		<div class="content">
 			<h4
-				class="title"
-				@click="goToTheArticlePage(article.title)"
+				class="title title--clamped"
+				@click="goToTheArticlePage(props.article.attributes.title)"
 			>
 				<span>
-					{{ article.title }}
+					{{ props.article.attributes.title }}
 				</span>
 			</h4>
 			<div class="date">
-				{{ formatDate(article.date.date) }}
+				{{ formatDate(props.article.attributes.date.date) }}
 			</div>
 		</div>
 	</div>
 
 	<!-- Medium size -->
 	<div
-		v-if="size === 'medium'"
+		v-if="props.size === 'medium'"
 		class="article-card--medium"
 	>
 		<div
 			class="link--image"
-			@click="goToTheArticlePage(article.title)"
+			@click="goToTheArticlePage(props.article.attributes.title)"
 		>
 			<img
 				class="image"
-				:src="article.image.url"
+				:src="props.article.attributes.image.src.data.attributes.url"
 				alt=""
 			/>
 		</div>
 		<div class="content">
 			<h4
 				class="title"
-				@click="goToTheArticlePage(article.title)"
+				@click="goToTheArticlePage(props.article.attributes.title)"
 			>
 				<span>
-					{{ article.title }}
+					{{ props.article.attributes.title }}
 				</span>
 			</h4>
 			<div class="date">
-				{{ formatDate(article.date.date) }}
+				{{ formatDate(props.article.attributes.date.date) }}
 			</div>
 		</div>
 	</div>
 
 	<!-- Large size -->
 	<div
-		v-if="size === 'large'"
+		v-if="props.size === 'large'"
 		class="article-card--large"
 	>
 		<div
 			class="link--image"
-			@click="goToTheArticlePage(article.title)"
+			@click="goToTheArticlePage(props.article.attributes.title)"
 		>
 			<img
 				class="image"
-				:src="article.image.url"
-				:alt="article.image.alternativeText"
+				:src="props.article.attributes.image.src.data.attributes.url"
+				:alt="props.article.attributes.image.src.data.attributes.alternativeText ?? undefined"
 			/>
 		</div>
 		<div class="content">
 			<h3
 				class="title"
-				@click="goToTheArticlePage(article.title)"
+				@click="goToTheArticlePage(props.article.attributes.title)"
 			>
 				<span>
-					{{ article.title }}
+					{{ props.article.attributes.title }}
 				</span>
 			</h3>
 			<div class="date">
-				{{ formatDate(article.date.date) }}
+				{{ formatDate(props.article.attributes.date.date) }}
 			</div>
 		</div>
 	</div>
@@ -136,12 +141,20 @@ function goToTheArticlePage(articleTitle: string): void {
 }
 
 .title span {
+	font-family: var(--font-secondary);
 	cursor: pointer;
 	transition: color 0.2s ease-in-out;
 
 	&:hover {
 		color: rgba(255, 255, 255, 0.8);
 	}
+}
+
+.title--clamped {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	overflow: hidden;
 }
 
 // Article card (small)
@@ -162,6 +175,10 @@ function goToTheArticlePage(articleTitle: string): void {
 	}
 
 	.content {
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		height: 100%;
 		margin-left: 10px;
 	}
 }

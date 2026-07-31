@@ -1,3 +1,29 @@
+<script setup lang="ts">
+import { computed } from "vue";
+
+import { useMainStore } from "@/store";
+
+import shapeTop from "@/assets/images/shapes/news-01.png";
+import ArticleCard from "@/components/news-components/article-card-component.vue";
+
+import { Size } from "@/common/enums";
+import type { Article } from "@/common/types";
+
+// #region Dependencies
+const mainStore = useMainStore();
+// #endregion
+
+// #region Computed
+const news = computed<Article[]>(() => {
+	const newsList: Article[] = Object.values(mainStore.collectionTypes.news ?? {});
+
+	return newsList.sort((article1, article2) => {
+		return new Date(article2.attributes.date.date).getTime() - new Date(article1.attributes.date.date).getTime();
+	});
+});
+// #endregion
+</script>
+
 <template>
 	<section class="news">
 		<div class="news__container">
@@ -59,32 +85,6 @@
 		/>
 	</section>
 </template>
-
-<script setup lang="ts">
-import { computed } from "vue";
-
-import { useStore } from "vuex";
-
-import shapeTop from "@/assets/images/shapes/news-01.png";
-import ArticleCard from "@/components/news-components/article-card-component.vue";
-import { Size } from "@/common/enums";
-import type { Article } from "@/common/types";
-
-// #region Composables
-const store = useStore();
-// #endregion
-
-// #region Computed
-const news = computed<Article[] | null>(() => {
-	return store.state.news
-		? Object.values(store.state.news as Article[]).sort((article1, article2) => {
-				// @ts-ignore
-				return new Date(article2.date.date) - new Date(article1.date.date);
-		  })
-		: null;
-});
-// #endregion
-</script>
 
 <style scoped lang="scss">
 .news {

@@ -1,10 +1,10 @@
 <template>
 	<section
 		class="projects"
-		:class="{ 'projects--light': lightTheme }"
+		:class="{ 'projects--light': mainStore.lightTheme }"
 	>
 		<!-- Placeholder when there's no projects or layout defined for the category -->
-		<placeholder-component v-if="!layout || !projects || !projects.length" />
+		<placeholder-component v-if="!layout || !mainStore.sortedProjects.length" />
 
 		<div
 			v-else
@@ -12,18 +12,18 @@
 		>
 			<!-- Filters -->
 			<div
-				v-if="filters"
+				v-if="filters.length > 0"
 				class="projects__filters"
 			>
 				<div
 					v-for="filter of filters"
 					:key="filter.id"
 					class="projects__filter"
-					:class="{ 'projects__filter--active': slugifyString(filter.name) === selectedFilter }"
-					@click="onSelectFilter(filter.name)"
+					:class="{ 'projects__filter--active': slugifyString(filter.attributes.name) === mainStore.selected.filter }"
+					@click="onSelectFilter(filter.attributes.name)"
 				>
 					<span>
-						{{ filter.name }}
+						{{ filter.attributes.name }}
 					</span>
 				</div>
 			</div>
@@ -36,7 +36,10 @@
 						v-if="layout === Layout.GALLERY"
 						class="projects__gallery"
 					>
-						<div class="projects__gallery-images">
+						<div
+							v-if="medias?.length"
+							class="projects__gallery-images"
+						>
 							<gallery-component
 								:on-click="onChangeImageFocused"
 								:images="medias"
@@ -59,7 +62,7 @@
 						class="projects__list"
 					>
 						<card-component
-							v-for="project of projects"
+							v-for="project of mainStore.sortedProjects"
 							:key="project.id"
 							:project="project"
 						/>
@@ -79,43 +82,43 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
-import { useStore } from "vuex";
+import { computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import { useMainStore } from "@/store";
+
 import shapeBottom from "@/assets/images/shapes/projects-01.png";
+
 import GalleryComponent from "@/components/shared-components/gallery-component.vue";
 import MediaComponent from "@/components/shared-components/media-component.vue";
 import CardComponent from "@/components/projects-components/card-component.vue";
 import PlaceholderComponent from "@/components/projects-components/placeholder-component.vue";
-import { CategoryNameSlug, FilterNameSlug, Layout } from "@/common/enums";
+
 import { slugifyString } from "@/utils/slugify";
 import { shuffleArray } from "@/utils/shuffleArray";
-import type { ObjectById, Media, Project, Filter } from "@/common/types";
 
-// #region Hooks
-const store = useStore();
+import { Layout } from "@/common/enums";
+import type { Media, Filter } from "@/common/types";
+
+// #region Dependencies
+const mainStore = useMainStore();
+
 const route = useRoute();
 const router = useRouter();
 // #endregion
 
 // #region Computed
-const category = computed<CategoryNameSlug>(() => store.state.selected.category);
-const type = computed<FilterNameSlug>(() => store.state.selected.filter);
-const indexOfFocusedImage = computed(() => store.state.app.focusedImageIndex);
-const selectedFilter = computed(() => store.state.selected.filter);
-const lightTheme = computed(() => store.getters.lightTheme);
-const filters = computed<Filter[] | null>(() => {
-	if (!store.getters.filtersByCategory) {
-		return null;
+const filters = computed<Filter[]>(() => {
+	if (!mainStore.filtersBySelectedCategory) {
+		return [];
 	}
 
-	return store.getters.filtersByCategory.sort((filterA: Filter, filterB: Filter) => {
-		if (filterA.index < filterB.index) {
+	return [...mainStore.filtersBySelectedCategory].sort((filterA, filterB) => {
+		if (filterA.attributes.index < filterB.attributes.index) {
 			return -1;
 		}
 
-		if (filterA.index > filterB.index) {
+		if (filterA.attributes.index > filterB.attributes.index) {
 			return 1;
 		}
 
@@ -124,81 +127,35 @@ const filters = computed<Filter[] | null>(() => {
 });
 
 const focusedMedia = computed<Media | null>(() => {
-	if (!medias.value || !medias.value[indexOfFocusedImage.value]) {
+	if (!medias.value?.[mainStore.app.focusedImageIndex]) {
 		return null;
 	}
 
-	return medias.value[indexOfFocusedImage.value];
+	return medias.value[mainStore.app.focusedImageIndex];
 });
-// Determine the page layout for the projects.
-const layout = computed<Layout | null>(() => {
-	if (!store.state.selected.category) {
-		return null;
-	}
 
-	const TYPES_WITH_LIST_LAYOUT = store.getters.types.reduce((acc: FilterNameSlug[], type: Filter) => {
-		if (type.layout === Layout.LIST) {
-			acc.push(slugifyString<FilterNameSlug>(type.name));
-		}
-
-		return acc;
-	}, []);
-
-	if (store.state.selected.category === CategoryNameSlug.CIRCUS && !TYPES_WITH_LIST_LAYOUT.includes(store.state.selected.filter)) {
-		return Layout.GALLERY;
-	} else {
+const layout = computed<Layout>(() => {
+	if (!mainStore.selected.category) {
 		return Layout.LIST;
 	}
+
+	const selectedCategory = mainStore.collectionTypes.categories?.[mainStore.selected.category];
+	const selectedFilter = mainStore.filtersBySelectedCategory.find((filter) => slugifyString(filter.attributes.name) === mainStore.selected.filter);
+
+	return selectedFilter?.attributes.layout ?? selectedCategory?.attributes.defaultLayout ?? Layout.LIST;
 });
 
-// Select the appropriate projects, according to the category and the filter selected.
-const projects = computed<Project[] | null>(() => {
-	if (!store.state.projects || store.state.selected.category === CategoryNameSlug.EMPTY) {
-		return null;
-	}
-
-	const projectsFiltered = Object.values(store.state.projects as ObjectById<Project>)
-		.filter((project) => {
-			// Filters by categories.
-			return project.categories.map((category) => slugifyString<CategoryNameSlug>(category)).includes(store.state.selected.category);
-		})
-		.filter((project) => {
-			const TYPES_RETURN_ALL_PROJECTS = [FilterNameSlug.EMPTY, FilterNameSlug.ALL, FilterNameSlug.NONE];
-
-			// Filters by type.
-			if (TYPES_RETURN_ALL_PROJECTS.includes(store.state.selected.filter)) {
-				return project;
-			}
-
-			return slugifyString(project.type) === store.state.selected.filter;
-		})
-		.sort((projectA, projectB) => {
-			if (projectA.index < projectB.index) {
-				return -1;
-			}
-
-			if (projectA.index > projectB.index) {
-				return 1;
-			}
-
-			return 0;
-		});
-
-	return projectsFiltered;
-});
-
-// Returns a shuffled list of medias if the selected category is circus.
-const medias = computed<Media[] | null>(() => {
-	if (!projects.value || store.state.selected.category !== CategoryNameSlug.CIRCUS) {
-		return null;
+const medias = computed<Media[]>(() => {
+	if (!mainStore.sortedProjects || layout.value !== Layout.GALLERY) {
+		return [];
 	}
 
 	return shuffleArray(
-		projects.value.reduce((acc: Media[], project) => {
+		mainStore.sortedProjects.reduce((acc: Media[], project) => {
 			acc.push(
-				...project.medias.map((media) => ({
+				...project.attributes.medias.map((media) => ({
 					...media,
-					type: slugifyString(project.type) as FilterNameSlug,
+					type: slugifyString(project.attributes.type.data?.attributes.name ?? "All"),
 				})),
 			);
 
@@ -209,24 +166,30 @@ const medias = computed<Media[] | null>(() => {
 // #endregion
 
 // #region Functions
-// Changes the focused image.
-function onChangeImageFocused({ index }: { index: string }): void {
-	store.dispatch("setFocusedImageIndex", index);
+function onChangeImageFocused({ index }: { index: number }): void {
+	mainStore.setFocusedImageIndex(index);
 }
-// Changes the selected filter.
-async function onSelectFilter(name: FilterNameSlug): Promise<void> {
-	await store.dispatch("setFocusedImageIndex", 0);
-	await store.dispatch("setFilter", name);
-	await router.push(`/projects/${category.value}/filter/${type.value}`);
+
+async function onSelectFilter(name: string): Promise<void> {
+	mainStore.setFocusedImageIndex(0);
+	mainStore.setFilter(name);
+
+	await router.push(`/projects/${mainStore.selected.category}/filter/${mainStore.selected.filter}`);
 }
 // #endregion
 
 // #region Lifecycles
-onMounted(async () => {
-	// Retrieve the selected category and filter with the slugs.
-	await store.dispatch("setCategory", route.params.category as CategoryNameSlug);
-	await store.dispatch("setFilter", route.params.filter as FilterNameSlug);
-});
+watch(
+	() => [route.params.category, route.params.filter],
+	([categorySlug, filterSlug]) => {
+		mainStore.setCategory(typeof categorySlug === "string" ? categorySlug : categorySlug?.[0]);
+
+		if (filterSlug) {
+			mainStore.setFilter(typeof filterSlug === "string" ? filterSlug : filterSlug[0]);
+		}
+	},
+	{ immediate: true },
+);
 // #endregion
 </script>
 

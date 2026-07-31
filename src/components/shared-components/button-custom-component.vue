@@ -1,48 +1,51 @@
-<script setup>
-/**
- * @property {string} text Text inside the button.
- * @property {string} link Link used when the user clicks on the button.
- * @property {boolean} external Specify if <router-link> or <a> tag is needed.
- **/
+<script setup lang="ts">
+// #region Props
+interface Props {
+	/**
+	 * Text inside the button.
+	 */
+	text: string;
 
-defineProps({
-  "text": {
-    "type": String,
-    "required": true,
-    "default": () => "",
-  },
-  "link": {
-    "type": String,
-    "required": false,
-    "default": "",
-  },
-  "external": {
-    "type": Boolean,
-    "required": false,
-    "default": () => "",
-  },
+	/**
+	 * Link used when the user clicks on the button.
+	 */
+	link?: string;
+
+	/**
+	 * Specify if <router-link> or <a> tag is needed.
+	 */
+	external?: boolean;
+
+	class?: string;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	link: "",
+	external: false,
+	class: undefined,
 });
+// #endregion
 </script>
 
 <template>
   <!-- External link -->
-  <a v-if="link && external" :href="link" class="button" target="_blank">
-    <button class="button__content">
-      {{text}}
-    </button>
-  </a>
+	<button v-if="props.link && props.external" :class="props.class" class="button">
+		<a :href="props.link" class="button__content" target="_blank">
+      {{ props.text }}
+		</a>
+	</button>
 
   <!-- Internal link -->
-  <router-link v-if="link && !external" :to="link" class="button">
-    <button class="button__content">
-      {{text}}
-    </button>
-  </router-link>
+	<button v-if="props.link && !props.external" class="button" :class="props.class">
+		<router-link :to="props.link" class="button__content">
+      {{ props.text }}
+		</router-link>
+	</button>
 
   <!-- Form button -->
-  <button v-if="!link" class="button button--submit" type="submit">
+  <button v-if="!props.link" class="button button--submit" :class="props.class" type="submit">
     <span class="button__content">
-      {{text}}
+      {{ props.text }}
     </span>
   </button>
 </template>

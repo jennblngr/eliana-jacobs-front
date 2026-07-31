@@ -2,22 +2,27 @@
 import emailjs from "@emailjs/browser";
 import { ref } from "vue";
 
-import IconSocialComponent from "@/components/shared-components/icon-social-component.vue";
-import CustomButtonComponent from "@/components/shared-components/button-custom-component.vue";
+import { useMainStore } from "@/store";
 
 import shapeRight from "@/assets/images/shapes/contact-01.png";
 
+import IconSocialComponent from "@/components/shared-components/icon-social-component.vue";
+import CustomButtonComponent from "@/components/shared-components/button-custom-component.vue";
+
+// #region Definitions
 interface Form {
 	name: string;
 	email: string;
 	subject: string;
 	message: string;
 }
+// #endregion
+
+// #region Dependencies
+const mainStore = useMainStore();
+// #endregion
 
 // #region Data
-const INSTAGRAM_PROFILE = "https://www.instagram.com/__e_l_i_a_n_a__/";
-const YOUTUBE_CHANNEL = "https://www.youtube.com/channel/UC7Og5-qT_0Oucnraj2f51VQ";
-
 const form = ref<HTMLFormElement | string>("");
 const isHighlight = ref<boolean>(false);
 const formObject = ref<Form>({
@@ -153,13 +158,11 @@ function sendEmail(): void {
 					<div class="contact__footer">
 						<div class="contact__icons">
 							<icon-social-component
-								:icon="['fab', 'instagram']"
-								:link="INSTAGRAM_PROFILE"
-							/>
-
-							<icon-social-component
-								:icon="['fab', 'youtube']"
-								:link="YOUTUBE_CHANNEL"
+								v-if="mainStore.singleTypes.about.socialNetworks.length"
+								v-for="socialNetwork of mainStore.singleTypes.about.socialNetworks"
+								:key="socialNetwork.id"
+								:icon="['fab', mainStore.socialNetworkIcons[socialNetwork.id]]"
+								:link="socialNetwork.link"
 							/>
 						</div>
 
@@ -252,10 +255,8 @@ function sendEmail(): void {
 
 	&__icons {
 		display: flex;
-
-		:deep(.icon-social:nth-child(1)) {
-			margin-right: 10px;
-		}
+		align-items: center;
+		gap: 10px;
 	}
 
 	&__error-message {

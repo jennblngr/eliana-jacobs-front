@@ -1,56 +1,45 @@
-<script setup>
-/**
- * @property {Object} image
- * @property {string} image.id ID of the image.
- * @property {string} image.alternativeText Alternative text for the image.
- * @property {Object} image.formats Formats (small, medium, large, thumbnail) of the image.
- * @property {Object} image.formats.thumbnail Thumbnail format of the image.
- * @property {string} image.formats.thumbnail.url URL of the image.
- **/
+<script setup lang="ts">
+import { useMainStore } from "@/store";
 
-import { computed } from "vue";
-import { useStore } from "vuex";
+import { IMAGE_MIMES } from "@/common/constants";
+import type { Media } from "@/common/types";
 
-const { state } = useStore();
+// #region Props
+interface Props {
+	images: Media[];
+	onClick: ({ index }: { index: number }) => void;
+}
 
-defineProps({
-	images: {
-		type: Array,
-		required: true,
-	},
-	onClick: {
-		type: Function,
-		required: true,
-	},
-});
+const props = defineProps<Props>();
+// #endregion
 
-const colorTheme = computed(() => state.app.colorTheme);
-
-const imageMimesTypesCheck = /image\/png|image\/jpeg|imagesvg\+xml|image\/gif|image\/svg\+xml/;
+// #region Dependencies
+const mainStore = useMainStore();
+// #endregion
 </script>
 
 <template>
 	<div class="gallery">
 		<div
-			v-for="(image, index) of images"
+			v-for="(image, index) of props.images"
 			:key="image.id"
 			class="gallery__image"
 		>
 			<img
-				v-if="imageMimesTypesCheck.test(image.mime)"
-				:src="image.formats.thumbnail ? image.formats.thumbnail.url : image.url"
-				:alt="image.alternativeText ? image.alternativeText : ''"
-				@click.stop="() => onClick({ index })"
+				v-if="IMAGE_MIMES.test(image.src.data.attributes.mime)"
+				:src="image.src.data.attributes.formats?.thumbnail ? image.src.data.attributes.formats.thumbnail.url : image.src.data.attributes.url"
+				:alt="image.src.data.attributes.alternativeText ?? undefined"
+				@click.stop="() => props.onClick({ index })"
 			/>
 
 			<!-- Audio file -->
 			<div
 				v-else
 				class="gallery__audio"
-				@click.stop="() => onClick({ index })"
+				@click.stop="() => props.onClick({ index })"
 			>
 				<font-awesome-icon
-					:class="colorTheme === 'dark' ? 'gallery__audio-icon' : 'gallery__audio-icon gallery__audio-icon--light'"
+					:class="mainStore.app.colorTheme === 'dark' ? 'gallery__audio-icon' : 'gallery__audio-icon gallery__audio-icon--light'"
 					class="gallery__audio-icon"
 					:icon="['fas', 'volume-high']"
 				/>

@@ -1,27 +1,44 @@
-<script setup>
-import {useStore} from "vuex";
+<script setup lang="ts">
+import { computed } from "vue";
 
-const store = useStore();
+// #region Props
+interface Props {
+	src: string;
+	isPreviewing: boolean;
+}
 
-defineProps({
-	"image": {
-		"type": String,
-		"required": true,
+const props = defineProps<Props>();
+// #endregion
+
+// #region Emits
+interface Emits {
+	(e: "update:is-previewing", newIsPreviewing: boolean): void;
+}
+
+const emit = defineEmits<Emits>();
+// #endregion
+
+// #region Computed
+const isPreviewingModel = computed<boolean>({
+	get() {
+		return props.isPreviewing;
 	},
-	"copyright": {
-		"type": String,
-		"required": true,
-	},
-});
+	set(newIsPreviewing) {
+		emit("update:is-previewing", newIsPreviewing)
+	}
+})
+// #endregion
 
-const undisplayedImageOnPreview = () => {
-	store.dispatch("setImageOnPreview", false);
+// #region Functions
+function undisplayedImageOnPreview() {
+	isPreviewingModel.value = false;
 };
+// #endregion
 </script>
 
 <template>
-  <div class="preview" @click="undisplayedImageOnPreview">
-    <img class="preview__image" :src="image" alt="Preview of the selected image.">
+  <div v-if="props.isPreviewing" class="preview" @click="undisplayedImageOnPreview">
+    <img class="preview__image" :src="props.src" alt="Preview of the selected image.">
   </div>
 </template>
 

@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from "vue-router";
 
-import { store } from "@/store";
+import { useMainStore } from "@/store";
+
+const PROJECTS_CATEGORY_ROUTE_NAMES = ["projects-without-transition", "projects-with-transition", "projects-and-filter", "project", "project-without-filter"];
 
 const router = createRouter({
 	history: createWebHistory(import.meta.env.BASE_URL),
@@ -73,23 +75,27 @@ const router = createRouter({
 	],
 });
 
-router.beforeEach(async (_to, _from, next) => {
-	await store
-		.dispatch("getData")
-		.then(() => {
-			store.dispatch("setIsLoading", false).then(() => {
-				console.debug("[app] data initialized.");
-				next();
-			});
-		})
-		.catch((error) => {
-			store.dispatch("setIsLoading", false);
-			store.dispatch("setErrorMessage", "An error occurred while retrieving the data.");
+router.beforeEach(async (to, from, next) => {
+	const store = useMainStore();
 
-			console.error(error);
+	if (PROJECTS_CATEGORY_ROUTE_NAMES.includes(from.name) && !PROJECTS_CATEGORY_ROUTE_NAMES.includes(to.name)) {
+		store.resetCategory();
+	}
 
-			next();
-		});
+	try {
+		await store.getData();
+
+		store.setIsLoading(false);
+		console.debug("[app] data initialized.");
+		next();
+	} catch (error) {
+		store.setIsLoading(false);
+		store.setErrorMessage("An error occurred while retrieving the data.");
+
+		console.error(error);
+
+		next();
+	}
 });
 
 export default router;

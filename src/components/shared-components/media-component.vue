@@ -1,56 +1,58 @@
-<script setup>
-/**
- * @property {Object} media
- * @property {string} media.copyright Credits photographer.
- * @property {string} media.mime Mime format of the media.
- * @property {string} media.link Link of the YouTube video, if any.
- * @property {string} article.address.street Street name of the event.
- * @property {string} article.address.city City of the event.
- * @property {string} article.website Website where to get more details about the event.
- * @property {string} article.publishedAt Publication date of the article.
- **/
-
-import { computed } from "vue";
-import { useStore } from "vuex";
+<script setup lang="ts">
+import { computed, ref } from "vue";
 
 import PreviewComponent from "@/components/preview-component.vue";
 import AudioPlayerComponent from "@/components/project-components/audio-player-component.vue";
 
-const props = defineProps({
-	media: {
-		type: Object,
-		required: true,
-		default: () => ({ link: "", copyright: "", mime: "", url: "", alternativeText: "" }),
-	},
-	hasPreview: {
-		type: Boolean,
-		required: false,
-		default: false,
-	},
+import { IMAGE_MIMES } from "@/common/constants";
+import type { Media } from "@/common/types";
+
+// #region Props
+interface Props {
+	media: Media;
+
+	/**
+	 * Can be opened in a preview window.
+	 */
+	hasPreview?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	hasPreview: false,
 });
+// #endregion
 
-const store = useStore();
+// #region Constants
+const YOUTUBE_LINK: Readonly<string> = "https://www.youtube.com/embed/";
+const AUDIO_MIMES: Readonly<RegExp> = /audio\/mp3|audio\/wav|audio\/ogg/;
+// #endregion
 
-const imageMimesTypesCheck = /image\/png|image\/jpeg|imagesvg\+xml|image\/gif|image\/svg\+xml/;
-const audioMimesTypesCheck = /audio\/mp3|audio\/wav|audio\/ogg/;
-const mediaIsImage = computed(() => imageMimesTypesCheck.test(props.media.mime));
-const mediaIsAudio = computed(() => audioMimesTypesCheck.test(props.media.mime));
-const mediaIsVideo = computed(() => props.media.link);
+// #region Data
+const isPreviewing = ref<boolean>(false);
+// #endregion
 
-const hasImageOnPreview = computed(() => store.state.app.hasImageOnPreview);
-const mediaImage = computed(() => (mediaIsImage.value ? props.media.url : ""));
-const imageAlt = computed(() => (mediaIsImage.value ? props.media.alternativeText : ""));
-const mediaLink = computed(() => props.media.link);
+// #region Computed
+const mediaIsImage = computed<boolean>(() => IMAGE_MIMES.test(props.media.src.data.attributes.mime));
+const mediaIsAudio = computed<boolean>(() => AUDIO_MIMES.test(props.media.src.data.attributes.mime));
+const mediaIsVideo = computed<boolean>(() => Boolean(props.media.link));
 
-const youTubeVideoLink = computed(() => {
-	const YOUTUBE_LINK = "https://www.youtube.com/embed/";
+const mediaSrc = computed<string>(() => (mediaIsImage.value ? props.media.src.data.attributes.url : ""));
+const imageAlt = computed<string | null>(() => (mediaIsImage.value ? props.media.src.data.attributes.alternativeText : ""));
+const mediaLink = computed<string | null>(() => props.media.link);
+
+const youTubeVideoLink = computed<string>(() => {
+	if (!props.media.link) {
+		return "";
+	}
 
 	return YOUTUBE_LINK + props.media.link.split("=")[1];
 });
 
-const displayImageOnPreview = () => {
-	store.dispatch("setImageOnPreview", true);
-};
+// #region Functions
+function displayImageOnPreview() {
+	isPreviewing.value = true;
+}
+// #endregion
 </script>
 
 <template>
@@ -62,18 +64,20 @@ const displayImageOnPreview = () => {
 		>
 			<img
 				class="image__src"
-				:src="mediaImage"
-				:alt="imageAlt"
+				:src="mediaSrc"
+				:alt="imageAlt ?? undefined"
 				@click="displayImageOnPreview"
 			/>
+
 			<div
-				v-if="media.copyright"
+				v-if="props.media.copyright"
 				class="image__copyright"
 			>
-				{{ media.copyright }}
+				{{ props.media.copyright }}
 			</div>
+
 			<div
-				v-if="hasPreview"
+				v-if="props.hasPreview"
 				class="image__preview"
 			>
 				<font-awesome-icon
@@ -81,10 +85,11 @@ const displayImageOnPreview = () => {
 					:icon="['fas', 'expand']"
 				/>
 			</div>
+
 			<preview-component
-				v-if="hasPreview && hasImageOnPreview"
-				:image="mediaImage"
-				:copyright="media.copyright"
+				v-if="props.hasPreview"
+				v-model:is-previewing="isPreviewing"
+				:src="mediaSrc"
 			/>
 		</div>
 
@@ -109,7 +114,10 @@ const displayImageOnPreview = () => {
 			v-else-if="mediaIsAudio"
 			class="video"
 		>
-			<audio-player-component :media="media" />
+			<audio-player-component
+				:src="mediaSrc"
+				:id="props.media.id"
+			/>
 		</div>
 
 		<div v-else>No corresponding media.</div>

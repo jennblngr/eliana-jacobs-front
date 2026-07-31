@@ -1,7 +1,7 @@
 <template>
 	<nav
 		class="navbar"
-		:class="{ 'navbar--light': themeMustBeLight }"
+		:class="{ 'navbar--light': mainStore.themeMustBeLight }"
 	>
 		<!-- Logo -->
 		<div class="navbar__logo">
@@ -10,7 +10,7 @@
 				@click="onClickWebsiteLogo"
 			>
 				<img
-					v-if="themeMustBeLight"
+					v-if="mainStore.themeMustBeLight"
 					class="navbar__logo-src"
 					alt="Name of Eliana's handwritten (black version)"
 					:src="logotypeBlack"
@@ -32,12 +32,12 @@
 			<!-- Menu lines with with pseudo class ":before" and ":after" to make top and bottom lines -->
 			<div
 				class="navbar__burger"
-				:class="{ 'navbar__burger--active': isMenuOpen }"
+				:class="{ 'navbar__burger--active': mainStore.app.isMenuOpen }"
 			>
 				<!-- Middle line with pseudo class ":before" to make cross animation -->
 				<span
 					class="navbar__burger-line"
-					:class="{ 'navbar__burger-line--active': isMenuOpen }"
+					:class="{ 'navbar__burger-line--active': mainStore.app.isMenuOpen }"
 				/>
 			</div>
 
@@ -54,7 +54,7 @@
 			@leave="onLeave"
 		>
 			<div
-				v-if="isMenuOpen"
+				v-if="mainStore.app.isMenuOpen"
 				class="navbar__overlay"
 			>
 				<div class="navbar__links">
@@ -71,13 +71,13 @@
 				</div>
 				<div class="navbar__links">
 					<div
-						v-for="category of categories"
+						v-for="category of mainStore.sortedCategories"
 						:key="category.id"
 						class="navbar__link"
-						@click="onClickCategoryLink(category.name)"
+						@click="onClickCategoryLink(category.attributes.name)"
 					>
 						<span class="navbar__link-text">
-							{{ category.name }}
+							{{ category.attributes.name }}
 						</span>
 					</div>
 				</div>
@@ -99,55 +99,48 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
 import { useRouter } from "vue-router";
-import { useStore } from "vuex";
+import { useMainStore } from "@/store";
 
 import logotypeBlack from "@/assets/images/logo-navbar-b.png";
 import logotypeWhite from "@/assets/images/logo-navbar-w.png";
+
 import { links } from "@/assets/data/links";
-import { CategoryNameFull, CategoryNameSlug, FilterNameSlug } from "@/common/enums";
 import { onAfterEnter, onBeforeEnter, onBeforeLeave, onEnter, onLeave } from "@/utils/gsap";
 import { defineRouteToPush } from "@/utils/pushRoute";
-import type { Category } from "@/common/types";
 
-// #region Hooks
-const store = useStore();
+// #region Dependencies
+const mainStore = useMainStore();
 const router = useRouter();
-// #endregion
-
-// #region Computed
-const category = computed<CategoryNameSlug>(() => store.state.selected.category);
-const filter = computed<FilterNameSlug>(() => store.state.selected.filter);
-const categories = computed<Category[]>(() => store.getters.categories);
-const isMenuOpen = computed<boolean>(() => store.state.app.isMenuOpen);
-const themeMustBeLight = computed<boolean>(() => store.getters.themeMustBeLight);
 // #endregion
 
 // #region Functions
 function onClickBurgerMenu() {
-	store.dispatch("setIsMenuOpen", !isMenuOpen.value);
+	mainStore.setIsMenuOpen(!mainStore.app.isMenuOpen);
 }
-async function onClickCategoryLink(name: CategoryNameFull) {
-	await store.dispatch("setCategory", name);
 
-	const routeToPush = await defineRouteToPush(category.value, filter.value);
+async function onClickCategoryLink(name: string) {
+	mainStore.setCategory(name);
+
+	const routeToPush = await defineRouteToPush(mainStore.selected.category, mainStore.selected.filter);
 
 	await router.push(routeToPush);
-	await store.dispatch("setIsMenuOpen", false);
+	mainStore.setIsMenuOpen(false);
 }
+
 async function onClickWebsiteLogo() {
-	await store.dispatch("setCategory", CategoryNameSlug.EMPTY);
-	await store.dispatch("setProject", "");
-	await store.dispatch("setIsMenuOpen", false);
+	mainStore.setCategory("");
+	mainStore.setProject("");
+	mainStore.setIsMenuOpen(false);
 }
+
 async function onClickGlobalLink(src: string) {
-	await store.dispatch("setCategory", CategoryNameSlug.EMPTY);
-	await store.dispatch("setProject", "");
+	mainStore.setCategory("");
+	mainStore.setProject("");
 
 	await router.push(src);
 
-	await store.dispatch("setIsMenuOpen", false);
+	mainStore.setIsMenuOpen(false);
 }
 // #endregion
 </script>

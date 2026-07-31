@@ -1,7 +1,7 @@
 <template>
 	<div
 		class="card"
-		:class="{ 'card--light': !lightTheme }"
+		:class="{ 'card--light': !mainStore.themeMustBeLight }"
 	>
 		<div
 			v-if="projectImage"
@@ -11,15 +11,15 @@
 				class="card__src"
 				:src="projectImage"
 				:alt="imageAlt"
-				@click="onClickProjectCard(projectName)"
+				@click="onClickProjectCard(props.project.attributes.name)"
 			/>
 		</div>
 
 		<h2
 			class="card__title"
-			@click="onClickProjectCard(projectName)"
+			@click="onClickProjectCard(props.project.attributes.name)"
 		>
-			{{ projectName }}
+			{{ props.project.attributes.name }}
 		</h2>
 	</div>
 </template>
@@ -27,39 +27,43 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import { useStore } from "vuex";
+import { useMainStore } from "@/store";
 import { useRouter } from "vue-router";
 
 import { slugifyString } from "@/utils/slugify";
-import { CategoryNameSlug, FilterNameSlug } from "@/common/enums";
 import type { Project } from "@/common/types";
 
-const store = useStore();
+// #region Dependencies
+const mainStore = useMainStore();
 const router = useRouter();
+// #endregion
 
+// #region Props
 interface Props {
 	project: Project;
 }
+
 const props = defineProps<Props>();
+// #endregion
 
 // #region Computed
-const lightTheme = computed<boolean>(() => store.getters.themeMustBeLight);
-const category = computed<CategoryNameSlug>(() => store.state.selected.category);
-const type = computed<FilterNameSlug>(() => store.state.selected.filter);
-const projectName = computed<string>(() => props.project.name);
-const projectImage = computed<string>(() => (props.project.medias?.length ? props.project.medias[0].url : ""));
-const imageAlt = computed<string>(() => (projectImage.value ? `Cover picture of the project ${projectName.value}` : "There's no picture for this project"));
+const projectImage = computed<string>(() => {
+	return props.project.attributes.medias?.length ? props.project.attributes.medias[0].src.data.attributes.url : ""
+});
+const imageAlt = computed<string>(() => {
+	return projectImage.value ? `Cover picture of the project ${props.project.attributes.name}` : "There's no picture for this project";
+});
 // #endregion
 
 // #region Functions
 // Go to the page of the selected project.
 async function onClickProjectCard(projectName: string): Promise<void> {
-	await store.dispatch("setProject", projectName);
+	mainStore.setProject(projectName);
 
-	if (type.value && type.value !== FilterNameSlug.NONE) {
-		await router.push(`/projects/${category.value}/filter/${type.value}/project/${slugifyString<string>(projectName)}`);
+	if (mainStore.selected.filter && mainStore.selected.filter !== "none") {
+		await router.push(`/projects/${mainStore.selected.category}/filter/${mainStore.selected.filter}/project/${slugifyString(projectName)}`);
 	} else {
-		await router.push(`/projects/${category.value}/project/${slugifyString<string>(projectName)}`);
+		await router.push(`/projects/${mainStore.selected.category}/project/${slugifyString(projectName)}`);
 	}
 }
 // #endregion

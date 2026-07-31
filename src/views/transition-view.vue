@@ -1,73 +1,71 @@
+<script setup lang="ts">
+import { onMounted, ref } from "vue";
+
+import { useRoute, useRouter } from "vue-router";
+import { useMainStore } from "@/store";
+
+import { slugifyString } from "@/utils/slugify";
+
+// #region Dependencies
+const route = useRoute();
+const router = useRouter();
+
+const mainStore = useMainStore();
+// #endregion
+
+// #region Data
+const filtersLength = ref<number>(mainStore.filtersBySelectedCategory.length);
+// #endregion
+
+// #region Functions
+async function onClickFilter(filterName: string) {
+	const slugifiedFilter = slugifyString(filterName);
+
+	mainStore.setFilter(slugifiedFilter);
+	await router.push(`/projects/${mainStore.selected.category}/filter/${mainStore.selected.filter}`);
+}
+// #endregion
+
+// #region Lifecycles
+onMounted(async () => {
+	const categorySlug = route.params.category;
+	const filterSlug = route.params.filter;
+
+	mainStore.setCategory(typeof categorySlug === "string" ? categorySlug : categorySlug[0]);
+	mainStore.setFilter(typeof filterSlug === "string" ? filterSlug : filterSlug[0]);
+});
+// #endregion
+</script>
+
 <template>
 	<div class="transition">
 		<div class="transition__filters">
 			<div
-				v-for="filter of filtersByCategory"
+				v-for="filter of mainStore.filtersBySelectedCategory"
 				:key="filter.id"
 				class="transition__filter"
 			>
 				<div
 					v-if="filter"
 					class="transition__filter-image"
-					@click="onClickFilter(filter.name)"
+					@click="onClickFilter(filter.attributes.name)"
 				>
 					<img
 						class="transition__filter-src"
-						:src="filter.image || ''"
+						:src="filter.attributes.image || ''"
 						alt=""
 					/>
 				</div>
 				<h2
 					class="transition__filter-name"
-					@click="onClickFilter(filter.name)"
+					@click="onClickFilter(filter.attributes.name)"
 				>
-					{{ filter.name }}
+					{{ filter.attributes.name }}
 				</h2>
 			</div>
 		</div>
 	</div>
 </template>
-
-<script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
-
-import { useRoute, useRouter } from "vue-router";
-import { useStore } from "vuex";
-
-import { FilterNameSlug } from "@/common/enums";
-import { slugifyString } from "@/utils/slugify";
-import type { Category, Filter } from "@/common/types";
-
-// #region Hooks
-const store = useStore();
-const route = useRoute();
-const router = useRouter();
-// #endregion
-
-// #region Computed
-const category = computed<Category>(() => store.state.selected.category);
-const type = computed<Filter>(() => store.state.selected.filter);
-const filtersByCategory = computed<Filter[]>(() => store.getters.filtersByCategory);
-// #endregion
-
-// #region Data
-const filtersLength = ref<number>(filtersByCategory.value?.length);
-// #endregion
-
-// #region Functions
-async function onClickFilter(filterName: string) {
-	const slugifiedFilter = slugifyString<FilterNameSlug>(filterName);
-
-	await store.dispatch("setFilter", slugifiedFilter);
-	await router.push(`/projects/${category.value}/filter/${type.value}`);
-}
-// #endregion
-
-onMounted(async () => {
-	await store.dispatch("setCategory", route.params.category);
-	await store.dispatch("setFilter", route.params.filter);
-});
-</script>
 
 <style scoped lang="scss">
 .transition {

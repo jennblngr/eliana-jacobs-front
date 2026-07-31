@@ -1,36 +1,32 @@
-<script setup>
-/**
- * @property {Object} practice
- * @property {Object} practice.image Image that symbolizes the practice.
- * @property {string} practice.image.copyright Credits photographer.
- * @property {string} practice.title Title of the practice.
- * @property {string} practice.text Text that gives details about the practice.
- **/
-
+<script setup lang="ts">
 import MediaComponent from "@/components/shared-components/media-component.vue";
 
-defineProps({
-	practice: {
-		type: Object,
-		required: true,
-	},
-});
+import type { Practice } from "@/common/types";
+
+// #region Props
+interface Props {
+	practice: Practice;
+}
+
+const props = defineProps<Props>();
+// #endregion
 </script>
 
 <template>
 	<div class="practice">
 		<div
-			v-if="practice"
 			class="practice__container"
 		>
-			<media-component :media="practice.image" />
+			<media-component :media="props.practice.image" />
 		</div>
+
 		<div class="practice__content">
 			<h3 class="practice__title">
-				{{ practice.title }}
+				{{ props.practice.title }}
 			</h3>
+
 			<p class="practice__text">
-				{{ practice.text }}
+				{{ props.practice.text }}
 			</p>
 		</div>
 	</div>

@@ -1,10 +1,14 @@
-<script setup>
-import {computed} from "vue";
-import {useStore} from "vuex";
+<script setup lang="ts">
+import { computed } from "vue";
+import { useMainStore } from "@/store";
 
-const store = useStore();
+// #region Dependencies
+const mainStore = useMainStore();
+// #endregion
 
-const errorMessage = computed(() => store.state.app.errorMessage);
+// #region Computed
+const errorMessage = computed(() => mainStore.app.errorMessage);
+// #endregion
 </script>
 
 <template>

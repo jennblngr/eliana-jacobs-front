@@ -1,33 +1,6 @@
 import gql from "graphql-tag";
 
-const PRACTICES_QUERY = gql`
-	query Practices {
-		practices {
-			data {
-				id
-				attributes {
-					title
-					text
-					image {
-						src {
-							data {
-								attributes {
-									url
-									alternativeText
-									mime
-								}
-							}
-						}
-						link
-						copyright
-					}
-				}
-			}
-		}
-	}
-`;
-
-const NEWS_QUERY = gql`
+const COLLECTION_TYPE_NEWS_QUERY = gql`
 	query News {
 		news(pagination: { limit: 100 }) {
 			data {
@@ -71,7 +44,7 @@ const NEWS_QUERY = gql`
 	}
 `;
 
-const CATEGORIES_QUERY = gql`
+const COLLECTION_TYPE_CATEGORIES_QUERY = gql`
 	query Categories {
 		categories {
 			data {
@@ -85,6 +58,7 @@ const CATEGORIES_QUERY = gql`
 							}
 						}
 					}
+					isLightTheme
 					types {
 						data {
 							attributes {
@@ -92,6 +66,7 @@ const CATEGORIES_QUERY = gql`
 							}
 						}
 					}
+					defaultLayout
 				}
 				id
 			}
@@ -99,7 +74,7 @@ const CATEGORIES_QUERY = gql`
 	}
 `;
 
-const TYPES_QUERY = gql`
+const COLLECTION_TYPE_FILTERS_QUERY = gql`
 	query Types {
 		types {
 			data {
@@ -130,14 +105,14 @@ const TYPES_QUERY = gql`
 	}
 `;
 
-const PROJECTS_QUERY = gql`
+const COLLECTION_TYPE_PROJECTS_QUERY = gql`
 	query Projects {
 		projects(pagination: { limit: 100 }) {
 			data {
 				id
 				attributes {
 					index
-					categories {
+					category {
 						data {
 							attributes {
 								name
@@ -180,40 +155,40 @@ const PROJECTS_QUERY = gql`
 	}
 `;
 
-const CV_QUERY = gql`
-	query Cv {
-		cv {
+const SINGLE_TYPE_ABOUT_QUERY = gql`
+	query About {
+		about {
 			data {
 				attributes {
-					link
+					title
+					socialNetworks {
+						id
+						link
+					}
+					cvLink
+					practices {
+						id
+						title
+						text
+						image {
+							id
+							src {
+								data {
+									attributes {
+										url
+										alternativeText
+										mime
+									}
+								}
+							}
+							copyright
+							link
+						}
+					}
 				}
 			}
 		}
 	}
 `;
 
-const INSTAGRAM_QUERY = gql`
-	query Instagram {
-		instagram {
-			data {
-				attributes {
-					link
-				}
-			}
-		}
-	}
-`;
-
-const YOUTUBE_QUERY = gql`
-	query Youtube {
-		youtube {
-			data {
-				attributes {
-					link
-				}
-			}
-		}
-	}
-`;
-
-export { PRACTICES_QUERY, NEWS_QUERY, CATEGORIES_QUERY, TYPES_QUERY, PROJECTS_QUERY, CV_QUERY, INSTAGRAM_QUERY, YOUTUBE_QUERY };
+export { COLLECTION_TYPE_NEWS_QUERY, COLLECTION_TYPE_CATEGORIES_QUERY, COLLECTION_TYPE_FILTERS_QUERY, COLLECTION_TYPE_PROJECTS_QUERY, SINGLE_TYPE_ABOUT_QUERY };

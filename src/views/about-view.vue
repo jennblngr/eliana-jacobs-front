@@ -1,36 +1,45 @@
+<script setup lang="ts">
+import { useMainStore } from "@/store";
+
+import shapeTopRight from "@/assets/images/shapes/about-01.png";
+import shapeBottomLeft from "@/assets/images/shapes/about-02.png";
+import IconSocialComponent from "@/components/shared-components/icon-social-component.vue";
+import ButtonCustomComponent from "@/components/shared-components/button-custom-component.vue";
+import PracticeComponent from "@/components/about-components/practice-component.vue";
+
+// #region Dependencies
+const mainStore = useMainStore();
+// #endregion
+</script>
+
 <template>
 	<div class="about">
 		<main class="about__container">
 			<header class="about__header">
-				<h1 class="about__title">Eliana is a performance, circus, visual and conceptual artist and singer.</h1>
+				<h1 class="about__title">{{ mainStore.singleTypes.about.title }}</h1>
 
 				<div class="about__actions">
 					<div class="about__icons">
-						<!-- Instagram profile -->
 						<icon-social-component
-							:icon="['fab', 'instagram']"
-							:link="instagram"
-						/>
-
-						<!-- YouTube channel -->
-						<icon-social-component
-							:icon="['fab', 'youtube']"
-							:link="youtubeChannel"
+							v-if="mainStore.singleTypes.about.socialNetworks.length"
+							v-for="socialNetwork of mainStore.singleTypes.about.socialNetworks"
+							:key="socialNetwork.id"
+							:icon="['fab', mainStore.socialNetworkIcons[socialNetwork.id]]"
+							:link="socialNetwork.link"
 						/>
 					</div>
 
 					<div class="about__buttons">
-						<!-- Contact page button -->
 						<button-custom-component
 							text="Contact me"
 							link="/contact"
 							:external="false"
 						/>
 
-						<!-- Button to download CV -->
 						<button-custom-component
+							v-if="mainStore.singleTypes.about.cvLink"
 							text="Download my CV"
-							:link="cv"
+							:link="mainStore.singleTypes.about.cvLink"
 							:external="true"
 						/>
 					</div>
@@ -42,7 +51,7 @@
 
 				<div class="about__practices">
 					<practice-component
-						v-for="practice of practices"
+						v-for="practice of mainStore.singleTypes.about.practices"
 						:key="practice.id"
 						:practice="practice"
 					/>
@@ -63,33 +72,6 @@
 		/>
 	</div>
 </template>
-
-<script setup lang="ts">
-import { computed } from "vue";
-
-import { useStore } from "vuex";
-
-import shapeTopRight from "@/assets/images/shapes/about-01.png";
-import shapeBottomLeft from "@/assets/images/shapes/about-02.png";
-import IconSocialComponent from "@/components/shared-components/icon-social-component.vue";
-import ButtonCustomComponent from "@/components/shared-components/button-custom-component.vue";
-import PracticeComponent from "@/components/about-components/practice-component.vue";
-import type { Practice } from "@/common/types";
-
-// #region Composables
-const store = useStore();
-// #endregion
-
-// #region Computed
-const cv = computed(() => store.state.cv);
-const instagram = computed(() => store.state.instagram);
-const youtubeChannel = computed(() => store.state.youtube);
-
-const practices = computed<Practice[] | null>(() => {
-	return store.state.practices ? Object.values(store.state.practices) : null;
-});
-// #endregion
-</script>
 
 <style scoped lang="scss">
 .about {
@@ -119,14 +101,17 @@ const practices = computed<Practice[] | null>(() => {
 	}
 
 	&__actions {
+		display: flex;
+		align-items: center;
+		gap: 10px;
 		flex-wrap: wrap;
 	}
 
 	&__icons {
-		margin-bottom: 10px;
-		:deep(.icon-social) {
-			margin-right: 10px;
-		}
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		height: 100%;
 	}
 
 	&__buttons {

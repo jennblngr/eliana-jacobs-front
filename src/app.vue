@@ -1,76 +1,42 @@
-<script setup>
-import { provide, computed } from "vue";
-import { useStore } from "vuex";
-import { RouterView, useRoute } from "vue-router";
-import { DefaultApolloClient } from "@vue/apollo-composable";
+<script setup lang="ts">
 import { ApolloClient, InMemoryCache } from "@apollo/client/core";
+import { DefaultApolloClient } from "@vue/apollo-composable";
+import { provide } from "vue";
+import { RouterView } from "vue-router";
+
+import { useMainStore } from "@/store";
 
 import loadingScreenLogotype from "@/assets/images/logo-loading-screen.png";
 
 import NavbarComponent from "@/components/navbar-component.vue";
 import FooterComponent from "./components/footer-component.vue";
 import ErrorComponent from "@/components/shared-components/error-component.vue";
-import { slugifyString } from "@/utils/slugify";
-import { CategoryNameSlug } from "@/common/enums";
 
-const { state, getters, dispatch } = useStore();
-const route = useRoute();
+// #region Dependencies
+const mainStore = useMainStore();
+// #endregion
 
+// #region Data
 const apolloClient = new ApolloClient({
 	uri: "https://eliana-jacobs-back.herokuapp.com/graphql",
 	cache: new InMemoryCache(),
 });
-const lightTheme = computed(() => getters.lightTheme);
-const isLoading = computed(() => state.app.isLoading);
-const isMenuOpen = computed(() => state.app.isMenuOpen);
-const errorMessage = computed(() => state.app.errorMessage);
-const filters = computed(() => {
-	const categoryWithFilterAll = [CategoryNameSlug.CIRCUS];
-	const storedSelectedFilter = window.localStorage.getItem("filter");
-	const filtersByCategory = getters.filtersByCategory;
+// #endregion
 
-	if (!filtersByCategory) {
-		return null;
-	}
-
-	const filterIsAlreadySelected = filtersByCategory.some((filter) => slugifyString(filter.name) === storedSelectedFilter);
-
-	// If there is already a filter selected, and it corresponds to one
-	// of the filters of the selected category, it is selected again.
-	if (filterIsAlreadySelected) {
-		dispatch("setFilter", storedSelectedFilter);
-	} else {
-		if (categoryWithFilterAll.includes(route.params.slug)) {
-			dispatch("setFilter", "All");
-		} else {
-			dispatch("setFilter", "");
-		}
-	}
-
-	return filtersByCategory;
-});
-
+// #region Providers
 provide(DefaultApolloClient, apolloClient);
-
-/**
- * Changes the selected filter.
- * @param name - Name of the selected filter.
- **/
-const selectFilter = (name) => {
-	dispatch("setFocusedImageIndex", 0);
-	dispatch("setFilter", name);
-};
+// #endregion
 </script>
 
 <template>
 	<div
 		class="container"
-		:class="{ 'container--light': lightTheme }"
+		:class="{ 'container--light': mainStore.lightTheme }"
 	>
 		<!-- Loading screen -->
 		<transition name="loading-transition">
 			<div
-				v-if="isLoading"
+				v-if="mainStore.app.isLoading"
 				class="loading"
 			>
 				<img
@@ -78,6 +44,7 @@ const selectFilter = (name) => {
 					:src="loadingScreenLogotype"
 					alt="Eliana's logotype"
 				/>
+
 				<h4 class="loading__text">Loading</h4>
 			</div>
 		</transition>
@@ -90,10 +57,10 @@ const selectFilter = (name) => {
 			<!-- Pages -->
 			<div
 				class="main__container"
-				:class="{ 'main__container--stuck': isLoading || isMenuOpen }"
+				:class="{ 'main__container--stuck': mainStore.app.isLoading || mainStore.app.isMenuOpen }"
 			>
 				<!-- Router -->
-				<router-view v-if="!errorMessage" />
+				<router-view v-if="!mainStore.app.errorMessage" />
 
 				<!-- Error message if there's one -->
 				<error-component v-else />

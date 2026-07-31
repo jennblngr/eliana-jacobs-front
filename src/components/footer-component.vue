@@ -1,10 +1,14 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from "vue";
-import { useStore } from "vuex";
+import { useMainStore } from "@/store";
 
-const { getters } = useStore();
+// #region Dependencies
+const mainStore = useMainStore();
+// #endregion
 
-const themeMustBeLight = computed(() => getters.themeMustBeLight);
+// #region Computed
+const themeMustBeLight = computed(() => mainStore.themeMustBeLight);
+// #endregion
 </script>
 
 <template>

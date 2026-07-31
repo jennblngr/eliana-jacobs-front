@@ -1,10 +1,6 @@
 import slugify from "slugify";
 
-export function slugifyString<T>(stringToSlug: string): T {
-	if (!stringToSlug) {
-		return "" as T;
-	}
-
+export function slugifyString(stringToSlug: string): string {
 	const forbiddenCharacters = ['"', "&", ".", "(", ")", "!", "?", ",", ", "];
 
 	const slugedString = stringToSlug
@@ -15,5 +11,5 @@ export function slugifyString<T>(stringToSlug: string): T {
 
 	return slugify(slugedString, {
 		lower: true,
-	}) as T;
+	});
 }

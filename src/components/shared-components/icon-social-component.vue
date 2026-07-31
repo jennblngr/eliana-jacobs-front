@@ -1,27 +1,25 @@
-<script setup>
-/**
- * @property {string} link Link used to redirect the social network.
- * @property {string} icon Class used to display the icon with FontAwesomeIcon.
- **/
+<script setup lang="ts">
+// #region Props
+interface Props {
+	/**
+	 * Class used to display the icon with `FontAwesomeIcon`.
+	 */
+	icon: string[];
 
-defineProps({
-  "icon": {
-    "type": Array,
-    "required": true,
-    "default": () => "",
-  },
-  "link": {
-    "type": String,
-    "required": true,
-    "default": () => "/",
-  },
-});
+	/** 
+	 * Link used to redirect the social network.
+	 */
+	link: string;
+}
+
+const props = defineProps<Props>();
+// #endregion
 </script>
 
 <template>
   <div class="icon-social">
-    <a :href="link" target="_blank">
-      <font-awesome-icon :icon="icon" />
+    <a :href="props.link" target="_blank">
+      <font-awesome-icon :icon="props.icon" />
     </a>
   </div>
 </template>

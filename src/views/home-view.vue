@@ -25,9 +25,11 @@
 
 		<div class="home__flower">
 			<img
+				ref="flowerShapeRef"
 				class="home__flower-shape"
 				:src="flower"
 				alt=""
+				@load="setSizeOfTheFlower"
 			/>
 			<flower-component
 				:flower-height="flowerHeight"
@@ -50,25 +52,27 @@ import shapeRightTop from "@/assets/images/shapes/home-03.png";
 import shapeRightBottom from "@/assets/images/shapes/home-04.png";
 
 // #region Data
+const flowerShapeRef = ref<HTMLImageElement | null>(null);
 const flowerWidth = ref<number>(0);
 const flowerHeight = ref<number>(0);
 // #endregion
 
 // #region Functions
-function setSizeOfTheFlower(event: Event): void | null {
-	if (!event.target) {
-		return null;
+function setSizeOfTheFlower(): void {
+	if (!flowerShapeRef.value) {
+		return;
 	}
 
-	flowerWidth.value = (event.target as Window).innerWidth;
-	flowerHeight.value = (event.target as Window).innerHeight;
+	const { width, height } = flowerShapeRef.value.getBoundingClientRect();
+
+	flowerWidth.value = width;
+	flowerHeight.value = height;
 }
 // #endregion
 
 // #region Lifecycles
 onMounted(() => {
-	flowerWidth.value = window.innerWidth;
-	flowerHeight.value = window.innerHeight;
+	setSizeOfTheFlower();
 	window.addEventListener("resize", setSizeOfTheFlower);
 });
 

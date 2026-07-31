@@ -8,13 +8,13 @@
 			class="flower__svg"
 			x="0px"
 			y="0px"
-			:height="`${flowerHeight}px`"
-			:width="`${flowerWidth}px`"
+			:height="`${props.flowerHeight}px`"
+			:width="`${props.flowerWidth}px`"
 			viewBox="0 0 832.7 792.1"
 		>
 			<!-- Petal 1 -->
 			<g
-				id="Art performance"
+				:id="categoryNames[2]"
 				class="flower__petal flower__petal-01"
 				@mouseenter="displayTooltip"
 				@mouseleave="hideTooltip"
@@ -51,7 +51,7 @@
 
 			<!-- Petal 2 -->
 			<g
-				id="Circus"
+				:id="categoryNames[0]"
 				class="flower__petal flower__petal-02"
 				@mouseenter="displayTooltip"
 				@mouseleave="hideTooltip"
@@ -85,7 +85,7 @@
 			</g>
 			<!-- Petal 3 -->
 			<g
-				id="Visual art"
+				:id="categoryNames[1]"
 				class="flower__petal flower__petal-03"
 				@mouseenter="displayTooltip"
 				@mouseleave="hideTooltip"
@@ -119,7 +119,7 @@
 			</g>
 			<!-- Petal 4 -->
 			<g
-				id="Music"
+				:id="categoryNames[4]"
 				class="flower__petal flower__petal-04"
 				@mouseenter="displayTooltip"
 				@mouseleave="hideTooltip"
@@ -156,7 +156,7 @@
 			</g>
 			<!-- Petal 5 -->
 			<g
-				id="Digital media"
+				:id="categoryNames[3]"
 				class="flower__petal flower__petal-05"
 				@mouseenter="displayTooltip"
 				@mouseleave="hideTooltip"
@@ -192,24 +192,25 @@
 	</div>
 </template>
 
-<!--suppress CssUnknownTarget, HtmlUnknownAttribute -->
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-import { useStore } from "vuex";
+import { useMainStore } from "@/store";
 import { useRouter } from "vue-router";
 
 import { slugifyString } from "@/utils/slugify";
-import type { Category, Filter } from "@/common/types";
 
+// #region Props
 interface Props {
 	flowerHeight: number;
 	flowerWidth: number;
 }
-defineProps<Props>();
 
-// #region Hooks
-const store = useStore();
+const props = defineProps<Props>();
+// #endregion
+
+// #region Dependencies
+const mainStore = useMainStore();
 const router = useRouter();
 // #endregion
 
@@ -218,12 +219,16 @@ let tooltipText = ref<string>("");
 // #endregion
 
 // #region Computed
-const category = computed<Category>(() => store.state.selected.category);
-const type = computed<Filter>(() => store.state.selected.filter);
-const categories = computed<Category[]>(() => store.getters.categories);
+const categoryNames = computed<string[]>(() => {
+	return mainStore.sortedCategories.reduce((acc: string[], category) => {
+		acc.push(category.attributes.name ?? "");
+
+		return acc;
+	}, []);
+});
 const categoriesImages = computed<string[]>(() => {
-	return categories.value.reduce((acc: string[], category) => {
-		acc.push(category.placeholder ? category.placeholder : "/");
+	return mainStore.sortedCategories.reduce((acc: string[], category) => {
+		acc.push(category.attributes.placeholder.data.attributes.url ? category.attributes.placeholder.data.attributes.url : "/");
 
 		return acc;
 	}, []);
@@ -232,17 +237,16 @@ const categoriesImages = computed<string[]>(() => {
 
 // #region Functions
 function displayTooltip(event: Event): void {
-	if (!event.target) {
+	if (!(event.target instanceof SVGElement)) {
 		return;
 	}
 
-	const eventTarget = event.target as SVGElement;
 	const target: HTMLDivElement | null = document.querySelector(".flower__tooltip");
-	
+
 	// Trouver le groupe parent avec la classe flower__petal
-	const petalGroup = eventTarget.closest(".flower__petal") as SVGGElement;
-	
-	if (!petalGroup || !target) {
+	const petalGroup = event.target.closest(".flower__petal");
+
+	if (!(petalGroup instanceof SVGGElement) || !target) {
 		return;
 	}
 
@@ -270,21 +274,20 @@ function hideTooltip(): void {
 }
 
 async function getProjectsByCategory(event: Event) {
-	if (!event.target) {
+	if (!(event.target instanceof Element)) {
 		return;
 	}
 
-	const eventTarget = event.target as HTMLDivElement;
-	const flower = eventTarget.closest(".flower__petal");
+	const flower = event.target.closest(".flower__petal");
 
 	if (!flower) {
 		return;
 	}
 
-	await store.dispatch("setCategory", slugifyString(flower.id));
-	await store.dispatch("setFilter", "All");
+	mainStore.setCategory(slugifyString(flower.id));
+	mainStore.setFilter("All");
 
-	await router.push(`/projects/${category.value}/filter/${type.value}`);
+	await router.push(`/projects/${mainStore.selected.category}/filter/${mainStore.selected.filter}`);
 }
 // #endregion
 </script>
@@ -320,8 +323,8 @@ clipPath use {
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
-		width: 95%;
-		height: 95%;
+		width: 92%;
+		height: 92%;
 	}
 
 	&__tooltip {

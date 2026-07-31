@@ -2,7 +2,7 @@
 	<div
 		class="back"
 		:class="{ 'back--light': lightTheme }"
-		@click="onClick"
+		@click="props.onClick"
 	>
 		<div class="back__arrow">
 			<img :src="lightTheme ? arrowBlack : arrowWhite" />
@@ -13,23 +13,26 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { useStore } from "vuex";
+import { useMainStore } from "@/store";
 
 import arrowBlack from "@/assets/icons/arrow-black.svg";
 import arrowWhite from "@/assets/icons/arrow-white.svg";
 
+// #region Props
 interface Props {
 	onClick: () => void;
 }
-defineProps<Props>();
 
-// #region Hooks
-const store = useStore();
+const props = defineProps<Props>();
+// #endregion
+
+// #region Dependencies
+const mainStore = useMainStore();
 // #endregion
 
 // #region Computed
-const lightTheme = computed<boolean>(() => store.getters.lightTheme);
-// #endreigon
+const lightTheme = computed<boolean>(() => mainStore.lightTheme);
+// #endregion
 </script>
 
 <style scoped lang="scss">

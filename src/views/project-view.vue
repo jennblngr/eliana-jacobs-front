@@ -1,7 +1,7 @@
 <template>
 	<section
 		class="project"
-		:class="{ 'project--light': lightTheme }"
+		:class="{ 'project--light': mainStore.lightTheme }"
 	>
 		<div v-if="project">
 			<arrow-back-component :on-click="backOnProjectsPage" />
@@ -9,36 +9,45 @@
 			<div class="project__container">
 				<div class="project__content">
 					<h1 class="project__title">
-						{{ project.name }}
+						{{ project.attributes.name }}
 					</h1>
 
 					<div class="project__date">
-						{{ project.date }}
+						{{ project.attributes.date }}
 					</div>
+
+					<button-custom-component
+						v-if="project.attributes.link?.src"
+						:link="project.attributes.link.src"
+						text="Visit link"
+						:external="true"
+						class="button--visit"
+					/>
+
 					<p
-						v-if="project.text"
+						v-if="project.attributes.text"
 						class="project__text"
-						v-html="marked.parse(project.text)"
+						v-html="marked.parse(project.attributes.text)"
 					/>
 
 					<div
-						v-if="project.medias.length > 1"
+						v-if="project.attributes.medias.length > 1"
 						class="project__images"
 					>
 						<gallery-component
-							:images="project.medias"
+							:images="project.attributes.medias"
 							:on-click="changeImageFocused"
 						/>
 					</div>
 				</div>
 
 				<div
-					v-if="project.medias[indexOfFocusedImage]"
+					v-if="project.attributes.medias[mainStore.app.focusedImageIndex]"
 					class="project__highlight"
 				>
 					<media-component
-						:media="project.medias[indexOfFocusedImage]"
-						:copyright="project.medias[indexOfFocusedImage].copyright"
+						:media="project.attributes.medias[mainStore.app.focusedImageIndex]"
+						:copyright="project.attributes.medias[mainStore.app.focusedImageIndex].copyright"
 						:has-preview="true"
 					/>
 				</div>
@@ -55,21 +64,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { marked } from "marked";
 
-import { useStore } from "vuex";
+import { useMainStore } from "@/store";
 import { useRoute, useRouter } from "vue-router";
 
 import ArrowBackComponent from "@/components/shared-components/arrow-back-component.vue";
 import MediaComponent from "@/components/shared-components/media-component.vue";
 import GalleryComponent from "@/components/shared-components/gallery-component.vue";
-import { CategoryNameSlug, FilterNameSlug, ThemeName } from "@/common/enums";
-import type { Project } from "@/common/types";
+import ButtonCustomComponent from "@/components/shared-components/button-custom-component.vue";
 import { defineRouteToPush } from "@/utils/pushRoute";
 
-// #region Hooks
-const store = useStore();
+import type { Project } from "@/common/types";
+
+// #region Dependencies
+const mainStore = useMainStore();
 const route = useRoute();
 const router = useRouter();
 // #endregion
@@ -79,60 +89,66 @@ let viewportWidth = ref<number>(0);
 // #endregion
 
 // #region Computed
-const category = computed<CategoryNameSlug>(() => store.state.selected.category);
-const filter = computed<FilterNameSlug>(() => store.state.selected.filter);
-const indexOfFocusedImage = computed<number>(() => store.state.app.focusedImageIndex);
-const lightTheme = computed<ThemeName>(() => store.getters.lightTheme);
-const project = computed<Project>(() => {
-	if (store.state.selected.project === "") {
+const categorySlug = computed<string | undefined>(() => {
+	const categorySlug = route.params.category;
+
+	if (typeof categorySlug === "string") {
+		return categorySlug;
+	}
+
+	return categorySlug.length > 0 ? categorySlug[0] : undefined;
+});
+
+const filterSlug = computed<string | undefined>(() => {
+	const filterSlug = route.params.filter;
+
+	if (typeof filterSlug === "string") {
+		return filterSlug;
+	}
+
+	return filterSlug.length > 0 ? filterSlug[0] : undefined;
+});
+
+const project = computed<Project | null>(() => {
+	if (mainStore.selected.project === "" || !mainStore.collectionTypes.projects) {
 		return null;
 	}
 
-	return store.state.projects[store.state.selected.project];
+	return mainStore.collectionTypes.projects[mainStore.selected.project] ?? null;
 });
 // #endregion
 
 // #region Functions
 // Change the image focused in the window.
-async function changeImageFocused({ index }: { index: number }): Promise<void> {
-	store.dispatch("setFocusedImageIndex", index);
-
-	if (viewportWidth.value < 768) {
-		await store.dispatch("setImageOnPreview", true);
-	}
+function changeImageFocused({ index }: { index: number }): void {
+	mainStore.setFocusedImageIndex(index);
 }
 
 // Clicking on the "Back" arrow takes the user back to the page of the projects.
 async function backOnProjectsPage(): Promise<void> {
-	await store.dispatch("setCategory", route.params.category);
-	await store.dispatch("setFilter", route.params.filter);
+	if (!categorySlug.value || !filterSlug.value) {
+		return;
+	}
 
-	const routeToPush = await defineRouteToPush(category.value, filter.value);
+	mainStore.setCategory(categorySlug.value);
+	mainStore.setFilter(filterSlug.value);
+
+	const routeToPush = await defineRouteToPush(mainStore.selected.category, mainStore.selected.filter);
 
 	await router.push(routeToPush);
 }
 
 // Set the viewport width in the "viewportWidth" data.
 function setViewportWidth(event: Event): void {
-	if (!event.target) {
+	if (!(event.target instanceof Window)) {
 		return;
 	}
 
-	const eventTarget = event.target as Window;
-	viewportWidth.value = eventTarget.innerWidth;
+	viewportWidth.value = event.target.innerWidth;
 }
 // #endregion
 
 // #region Lifecycles
-// Un-displays the image on preview if we return in the project page.
-watch(
-	() => route,
-	async () => {
-		await store.dispatch("setImageOnPreview", false);
-	},
-	{ deep: true, immediate: true },
-);
-
 // Retrieve the selected project and the category with the slug,
 // and according to the viewport width, decides if the selected image
 // must be previewed or displayed in the "media-component".
@@ -140,10 +156,15 @@ onMounted(async () => {
 	viewportWidth.value = window.innerWidth;
 	window.addEventListener("resize", setViewportWidth);
 
-	await store.dispatch("setCategory", route.params.category);
-	await store.dispatch("setFilter", route.params.filter as FilterNameSlug);
-	await store.dispatch("setProject", route.params.project);
-	await store.dispatch("setFocusedImageIndex", 0);
+	mainStore.setFocusedImageIndex(0);
+
+	const categorySlug = route.params.category;
+	const projectSlug = route.params.project;
+	const filterSlug = route.params.filter;
+
+	mainStore.setCategory(typeof categorySlug === "string" ? categorySlug : categorySlug[0]);
+	mainStore.setProject(typeof projectSlug === "string" ? projectSlug : projectSlug[0]);
+	mainStore.setFilter(typeof filterSlug === "string" ? filterSlug : filterSlug[0]);
 });
 // Remove listener on the window resizing.
 onUnmounted(() => {
@@ -221,6 +242,17 @@ onUnmounted(() => {
 				object-position: top center;
 			}
 		}
+	}
+}
+
+:deep(.button--visit) {
+	color: white !important;
+	margin-bottom: 30px;
+
+	&:hover {
+		color: var(--color-main) !important;
+		border-color: var(--color-main) !important;
+		background-color: white !important;
 	}
 }
 </style>

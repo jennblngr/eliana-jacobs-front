@@ -1,22 +1,17 @@
-<script setup>
-/**
- * @property {Object} media Audio media.
- * @property {string} media.id ID of the audio media.
- * @property {string} media.url URL to the media.
- **/
+<script setup lang="ts">
+// #region Props
+interface Props {
+	src: string;
+	id: string;
+}
 
-defineProps({
-	"media": {
-		"type": Object,
-		"required": true,
-		"default": () => ({"id": "", "url": ""})
-	},
-});
+const props = defineProps<Props>();
+// #endregion
 </script>
 
 <template>
   <div class="player">
-    <audio :id="media.id" class="player__src" :src="media.url" controls />
+    <audio :id="props.id" class="player__src" :src="props.src" controls />
   </div>
 </template>
 
