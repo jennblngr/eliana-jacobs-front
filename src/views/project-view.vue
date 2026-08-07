@@ -19,7 +19,7 @@
 					<button-custom-component
 						v-if="project.attributes.link?.src"
 						:link="project.attributes.link.src"
-						text="Visit link"
+						text="Website"
 						:external="true"
 						class="button--visit"
 					/>

@@ -140,8 +140,12 @@ function goToTheArticlePage(articleTitle: string): void {
 	}
 }
 
-.title span {
+.title {
 	font-family: var(--font-secondary);
+	letter-spacing: 0;
+}
+
+.title span {
 	cursor: pointer;
 	transition: color 0.2s ease-in-out;
 
