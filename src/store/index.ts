@@ -75,7 +75,7 @@ export const useMainStore = defineStore("main", () => {
 	const sortedProjects = computed<Project[]>(() => {
 		return projects.value
 			.filter((project) => {
-				return slugifyString(project.attributes.category.data.attributes.name) === state.selected.category;
+				return project.attributes.categories.data.some((category) => slugifyString(category.attributes.name) === state.selected.category);
 			})
 			.filter((project) => {
 				if (state.selected.filter === "all") {

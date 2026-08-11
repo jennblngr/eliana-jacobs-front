@@ -174,12 +174,12 @@ export interface Filter {
 export interface Project {
 	id: string;
 	attributes: {
-		category: {
+		categories: {
 			data: {
 				attributes: {
 					name: string;
 				};
-			};
+			}[];
 		};
 		date: string;
 		id: string;

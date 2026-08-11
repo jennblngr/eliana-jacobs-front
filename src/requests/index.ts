@@ -112,7 +112,7 @@ const COLLECTION_TYPE_PROJECTS_QUERY = gql`
 				id
 				attributes {
 					index
-					category {
+					categories {
 						data {
 							attributes {
 								name
